@@ -4,13 +4,7 @@
 %% API
 -export([new/0, new/2]).
 
--record(ts_player, {
-    mu :: number(),
-    sigma :: number(),
-    pi :: number(),
-    tau :: number(),
-    exposure :: number()
-}).
+-include("ts.hrl").
 
 new() ->
     %% on Xbox Live，default μ = 25, σ = 25 / 3, k = 3

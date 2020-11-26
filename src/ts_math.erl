@@ -4,6 +4,7 @@
 %% API
 -export([ppf/3, cdf/3, pdf/3]).
 
+
 -define(Sqrt2, math:sqrt(2)).
 -compile([{hipe, o3}]).
 
@@ -49,5 +50,5 @@ pdf(X, Mu, Sigma) ->
     1 / math:sqrt(2 * math:pi()) * abs(Sigma) * math:exp(-(math:pow((X - Mu) / abs(Sigma), 2) / 2)).
 
 
-gaussian1(Mu, Sigma) when Sigma =/= 0 -> Pi = math:pow(Sigma, -2), {Pi, Pi * Mu}.
-gaussian2(Pi, Tau) -> {Pi, Tau}.
+%%gaussian1(Mu, Sigma) when Sigma =/= 0 -> Pi = math:pow(Sigma, -2), {Pi, Pi * Mu}.
+%%gaussian2(Pi, Tau) -> {Pi, Tau}.

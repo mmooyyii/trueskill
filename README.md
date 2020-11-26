@@ -1,7 +1,6 @@
 trueskill
 =====
 
-An OTP application
 
 Build
 -----
