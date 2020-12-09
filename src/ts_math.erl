@@ -4,10 +4,16 @@
 %% API
 -export([ppf/3, cdf/3, pdf/3]).
 
+-export([new_variance/0, variance_add/2, variance_sub/2]).
 
 -define(Sqrt2, math:sqrt(2)).
 -compile([{hipe, o3}]).
 
+-record(variance, {
+    size = 0,
+    average = 0,
+    variance = 0
+}).
 
 erfcinv(Y) when Y >= 2 -> -100.0;
 erfcinv(Y) when Y =< 0 -> 100.0;
@@ -50,5 +56,25 @@ pdf(X, Mu, Sigma) ->
     1 / math:sqrt(2 * math:pi()) * abs(Sigma) * math:exp(-(math:pow((X - Mu) / abs(Sigma), 2) / 2)).
 
 
+new_variance() ->
+    #variance{size = 0, average = 0, variance = 0}.
+
+variance_add(#variance{size = S, average = A, variance = V}, N) ->
+    NA = average_add(S, A, N),
+    NV = ((N - 1) / (N * N)) * (N - A) * (N - A) + ((N - 1) / N) * V,
+    #variance{size = S + 1, average = NA, variance = NV}.
+
+variance_sub(#variance{size = S, average = A, variance = V}, N) ->
+    NA = average_add(S, A, N),
+    NV = ((N - 1) / (N * N)) * (N - A) * (N - A) + ((N - 1) / N) * V,
+    #variance{size = S + 1, average = NA, variance = NV}.
+
+average_add(Size, Average, N) ->
+    Average + (N - Average) / (Size + 1).
+
+average_sub(Size, Average, N) ->
+    ok.
+
 %%gaussian1(Mu, Sigma) when Sigma =/= 0 -> Pi = math:pow(Sigma, -2), {Pi, Pi * Mu}.
 %%gaussian2(Pi, Tau) -> {Pi, Tau}.
+
