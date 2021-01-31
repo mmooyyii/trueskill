@@ -11,3 +11,8 @@ new_player() ->
 match([]) ->
     ok.
 
+'1vs1'(P1, P2) ->
+    ok.
+
+
+
