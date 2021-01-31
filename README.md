@@ -1,7 +1,7 @@
 # trueskill
 Erlang implementation of TrueSkill
 
-## TrueSkill 
+## TrueSkill Algorithm
 TrueSkill is a kind of Bayesian inference algorithm for game rank and match, 
 has been used on Xbox Live.
 TrueSkill support 1:1,N:M, N:M:J:K game.
@@ -32,5 +32,6 @@ rebar3 compile
 
 ### TODO
 High Available Match System(Raft Consensus Algorithm)
+
 ### License 
 MIT
