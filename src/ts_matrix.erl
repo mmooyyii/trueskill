@@ -10,6 +10,7 @@
 -export([fold/3, foldt/3, map/2]).
 -export([determinant/1, inverse/1, minor/3]).
 
+-export([for_loop/1]).
 -export([print/1]).
 
 
@@ -47,10 +48,10 @@ set_row(RowIndex, RowData, #matrix{col = C} = M) ->
     Ret.
 
 row(Row, M = #matrix{col = C}) ->
-    lists:map(fun({Row, Col}) -> at(Row, Col, M) end, [{Row, Col} || Col <- lists:seq(0, C - 1)]).
+    lists:map(fun({RR, CC}) -> at(RR, CC, M) end, [{Row, Col} || Col <- lists:seq(0, C - 1)]).
 
 col(Col, M = #matrix{row = R}) ->
-    lists:map(fun({Row, Col}) -> at(Row, Col, M) end, [{Row, Col} || Row <- lists:seq(0, R - 1)]).
+    lists:map(fun({RR, CC}) -> at(RR, CC, M) end, [{Row, Col} || Row <- lists:seq(0, R - 1)]).
 
 reshape(#matrix{row = R, col = C, m = M}, Row, Col) when R * C =:= Row * Col ->
     #matrix{row = Row, col = Col, m = M}.
@@ -80,30 +81,27 @@ p_determinant(C, {Rv, Mat, false}) ->
     end.
 
 adjust_matrix(Matrix, Fact, C) ->
-    lists:foldl(fun(R, Matrix) ->
-        p_adjust_matrix(Matrix, at(R, C, Matrix) * Fact, C, R) end, Matrix, lists:seq(0, C - 1)).
+    lists:foldl(fun(R, M) ->
+        p_adjust_matrix(M, at(R, C, M) * Fact, C, R) end, Matrix, lists:seq(0, C - 1)).
 
 p_adjust_matrix(Matrix, F, C, R) ->
-    lists:foldl(fun(X, Matrix) ->
-        set(R, X, F * at(C, X, Matrix) + at(R, X, Matrix), Matrix)
-                end, Matrix, lists:seq(0, C - 1)).
+    lists:foldl(fun(X, M) -> set(R, X, F * at(C, X, M) + at(R, X, M), M) end, Matrix, lists:seq(0, C - 1)).
 
-
-inverse(M = #matrix{row = Row, col = Col}) when Row =:= Col -> new([[1 / at(0, 0, M)]]);
+inverse(M = #matrix{row = 1, col = 1}) -> new([[1 / at(0, 0, M)]]);
 inverse(M = #matrix{}) -> mul(1 / determinant(M), adjugate(M)).
 
-adjugate(M = #matrix{col = C, row = R}) when C =:= R ->
+adjugate(Matrix = #matrix{col = C, row = R}) when C =:= R ->
     Loop = fun({Row, Col}, M) -> V = determinant(minor(Row, Col, M)) * p_sign(Row, Col), set(Row, Col, V, M) end,
-    lists:foldl(Loop, M, for_loop([lists:seq(0, R - 1), lists:seq(0, C - 1)])).
+    lists:foldl(Loop, Matrix, for_loop([lists:seq(0, R - 1), lists:seq(0, C - 1)])).
 
 minor(R, C, Matrix = #matrix{row = Row, col = Col}) ->
     Loop = fun
-               (R1, _, M) when R =:= R1 -> M;
-               (_, C1, M) when C =:= C1 -> M;
-               (R1, C1, M) -> [at(R1, C1, Matrix) | M]
+               ({R1, _}, M) when R =:= R1 -> M;
+               ({_, C1}, M) when C =:= C1 -> M;
+               ({R1, C1}, M) -> [at(R1, C1, Matrix) | M]
            end,
-    M = lists:foldl(Loop, [], for_loop([lists:seq(0, R - 1), lists:seq(0, C - 1)])),
-    #matrix{row = Row - 1, col = Col - 1, m = M}.
+    M = lists:foldl(Loop, [], for_loop([lists:seq(0, Row - 1), lists:seq(0, Col - 1)])),
+    new(M, Row - 1, Col - 1).
 
 p_sign(Row, Col) when (Row + Col) rem 2 =:= 1 -> -1;
 p_sign(_, _) -> 1.

@@ -2,13 +2,10 @@
 -author("yimo").
 
 %% API
--export([]).
+-export([new_player/0, '1vs1'/2]).
 
 
 new_player() ->
-    ok.
-
-match([]) ->
     ok.
 
 '1vs1'(P1, P2) ->
