@@ -5,7 +5,7 @@
 -export([new/0, new/1, new/2]).
 -include("ts.hrl").
 
--export([vs/2]).
+-export([vs/1]).
 %% on Xbox Live，default μ = 25, σ = 25 / 3, k = 3
 -define(Mu, 25).
 -define(Sigma, ?Mu / 3).
@@ -22,10 +22,7 @@ new(Mu, Sigma) ->
     Pi = math:pow(Sigma, -2),
     #ts_player{mu = Mu, sigma = Sigma, pi = Pi, tau = Pi * Mu, exposure = 0}.
 
-vs(P1, P2) ->
-    vs([[P1, P2]]).
-
-vs(Groups) ->
+vs(Groups) when length(Groups) >= 2 ->
     Players = lists:flatten(Groups),
     Weights = [lists:map(fun(_) -> 1 end, Group) || Group <- Groups],
     MeanMatrix = ts_matrix:new([[Player#ts_player.mu] || Player <- Players]),

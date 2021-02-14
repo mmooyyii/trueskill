@@ -1,15 +1,11 @@
 {application, trueskill,
-    [{description, "An OTP application"},
+    [{description, ""},
         {vsn, "0.1.0"},
         {registered, []},
         {mod, {trueskill_app, []}},
-        {applications,
-            [kernel,
-                stdlib
-            ]},
+        {applications, [kernel, stdlib]},
         {env, []},
         {modules, []},
-
-        {licenses, ["Apache 2.0"]},
+        {licenses, ["MIT"]},
         {links, []}
     ]}.

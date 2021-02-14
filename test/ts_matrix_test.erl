@@ -1,10 +1,7 @@
 -module(ts_matrix_test).
 -author("yimo").
 
-%% API
 -include_lib("eunit/include/eunit.hrl").
-
-
 
 dot_1_test() ->
     A = ts_matrix:new([[1, 2], [3, 4]]),
