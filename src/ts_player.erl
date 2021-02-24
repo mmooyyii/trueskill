@@ -6,10 +6,9 @@
 -include("ts.hrl").
 
 -export([vs/1]).
+-export([rate/1, rate/4]).
+
 %% on Xbox Live，default μ = 25, σ = 25 / 3, k = 3
--define(Mu, 25).
--define(Sigma, ?Mu / 3).
--define(Beta, ?Sigma / 2).
 
 %%-type ts_player() :: ts_player().
 %%-type player() :: ts_player().
@@ -42,11 +41,24 @@ vs(Groups) when length(Groups) >= 2 ->
     SArg = ts_matrix:determinant(Ata) / ts_matrix:determinant(Middle),
     math:exp(EArg) * math:sqrt(SArg).
 
-%%settle(Groups, Ranks, Weights, MinDelta) ->
-%%    {SortedRatingGroups, SortedRanks, SortedWeights} = lists:unzip3(lists:sort(lists:zip3(Ranks, Groups, Weights))),
-%%
-%%    ok.
 
+rate(Groups) ->
+    rate(Groups, lists:seq(1, length(Groups)), [[1], [1]], ?Delta).
+
+rate(Groups, Ranks, Weights, MinDelta) ->
+    GroupSize = length(Groups),
+    {SortedRanks, SortedRatingGroups, SortedWeights} = lists:unzip3(lists:sort(lists:zip3(Ranks, Groups, Weights))),
+    {A, B} = factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights).
+%%    [RatingLayer | _] = run_schedule(A, B),
+%%    TeamSize = _team_sizes(SortedRatingGroups),
+%%    Group = [],
+%%    TransformedGroups = [],
+%%
+%%    [].
+
+
+f() ->
+    ts_player:rate([[ts_player:new()], [ts_player:new()]]).
 
 p_make_rotated_matrix(Groups, Weights) ->
     PlayerNum = length(lists:flatten(Groups)),
