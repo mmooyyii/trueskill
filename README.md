@@ -30,8 +30,5 @@ rebar3 compile
 # find the best game in match system
 ```
 
-### TODO
-High Available Match System(Raft Consensus Algorithm)
-
 ### License 
 MIT
