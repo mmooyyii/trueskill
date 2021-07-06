@@ -2,11 +2,12 @@
 -author("yimo").
 
 %% API
--export([new/0, new/1, new/2]).
+
 -include("ts.hrl").
 
+-export([new/2]).
 -export([vs/1]).
--export([rate/1, rate/4]).
+%%-export([rate/1, rate/4]).
 
 %% on Xbox Live，default μ = 25, σ = 25 / 3, k = 3
 
@@ -15,8 +16,6 @@
 %%-type group() :: [player()].
 %%-type groups() :: [group()].
 
-new() -> new(?Mu, ?Sigma).
-new(Mu) -> new(Mu, ?Sigma).
 new(Mu, Sigma) ->
     Pi = math:pow(Sigma, -2),
     #ts_player{mu = Mu, sigma = Sigma, pi = Pi, tau = Pi * Mu, exposure = 0}.
@@ -41,24 +40,6 @@ vs(Groups) when length(Groups) >= 2 ->
     SArg = ts_matrix:determinant(Ata) / ts_matrix:determinant(Middle),
     math:exp(EArg) * math:sqrt(SArg).
 
-
-rate(Groups) ->
-    rate(Groups, lists:seq(1, length(Groups)), [[1], [1]], ?Delta).
-
-rate(Groups, Ranks, Weights, MinDelta) ->
-    GroupSize = length(Groups),
-    {SortedRanks, SortedRatingGroups, SortedWeights} = lists:unzip3(lists:sort(lists:zip3(Ranks, Groups, Weights))),
-    {A, B} = factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights).
-%%    [RatingLayer | _] = run_schedule(A, B),
-%%    TeamSize = _team_sizes(SortedRatingGroups),
-%%    Group = [],
-%%    TransformedGroups = [],
-%%
-%%    [].
-
-
-f() ->
-    ts_player:rate([[ts_player:new()], [ts_player:new()]]).
 
 p_make_rotated_matrix(Groups, Weights) ->
     PlayerNum = length(lists:flatten(Groups)),
@@ -88,3 +69,22 @@ p_make_variance_matrix(Players) ->
         (_, _) -> 0
         end,
     ts_matrix:new([[F(A, B) || A <- lists:seq(1, Length)] || B <- lists:seq(1, Length)]).
+
+
+adjust(Groups) ->
+    adjust(Groups, [[1], [1]], ?Delta).
+
+adjust(Groups, Weights, MinDelta) ->
+    true = ts_utils:all_has_rank(Groups),
+    GroupSize = length(Groups),
+    {SortedRatingGroups, SortedWeights} = lists:unzip(lists:sort(lists:zip(Groups, Weights))),
+    {A, B} = factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights),
+    [RatingLayer | _] = run_schedule(A, B),
+    TeamSize = _team_sizes(SortedRatingGroups),
+    Group = [],
+    TransformedGroups = [],
+    [].
+
+
+
+

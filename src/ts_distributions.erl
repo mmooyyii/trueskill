@@ -1,4 +1,4 @@
--module(ts_math).
+-module(ts_distributions).
 -author("yimo").
 
 %% API
@@ -9,6 +9,16 @@
 -define(Sqrt2, math:sqrt(2)).
 -compile([{hipe, o3}]).
 
+ppf(X, Mu, Sigma) ->
+    Mu - Sigma * math:sqrt(2) * erfcinv(2 * X).
+
+cdf(X, Mu, Sigma) ->
+    0.5 * erfc(-(X - Mu) / (Sigma * math:sqrt(2))).
+
+
+pdf(X, Mu, Sigma) ->
+    %% 概率密度函数
+    1 / math:sqrt(2 * math:pi()) * abs(Sigma) * math:exp(-(math:pow((X - Mu) / abs(Sigma), 2) / 2)).
 
 erfcinv(Y) when Y >= 2 -> -100.0;
 erfcinv(Y) when Y =< 0 -> 100.0;
@@ -22,14 +32,6 @@ erfcinv(Y, Symbol) ->
     Err2 = erfc(X1) - Y,
     X2 = Err2 / (1.12837916709551257 * math:exp(-math:pow(X1, 2)) - X1 * Err2) + X1,
     Symbol * X2.
-
-
-ppf(X, Mu, Sigma) ->
-    Mu - Sigma * math:sqrt(2) * erfcinv(2 * X).
-
-cdf(X, Mu, Sigma) ->
-    0.5 * erfc(-(X - Mu) / (Sigma * math:sqrt(2))).
-
 erfc(X) ->
 %%  误差函数的泰勒展开式
 %%  公式来自 https://zh.wikipedia.org/wiki/%E8%AF%AF%E5%B7%AE%E5%87%BD%E6%95%B0
@@ -46,8 +48,5 @@ erfc(X) ->
                                     (-0.82215223 + T * 0.17087277))))))))),
     case X < 0 of true -> 2.0 - R;false -> R end.
 
-pdf(X, Mu, Sigma) ->
-    %% 概率密度函数
-    1 / math:sqrt(2 * math:pi()) * abs(Sigma) * math:exp(-(math:pow((X - Mu) / abs(Sigma), 2) / 2)).
 
 

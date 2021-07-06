@@ -56,21 +56,21 @@ build_team_perf_layer(TeamPerfVars, TeamSizes, PerfVars, FlattenWeights) ->
 build_team_diff_layer(TeamDiffVars) ->
     [ts_sum(TeamDiffVar, lists:sublist(TeamDiffVars, Team, Team + 2), [1, -1]) || {Team, TeamDiffVar}
         <- ts_utils:enum(TeamDiffVars)].
-
-build_trunc_layer(TeamDiffVars, RatingGroups, Ranks) ->
-    F = fun({X, TeamDiffVar}) ->
-        DrawProbability = ?DRAW_PROBABILITY, % TODO: dynamic draw probability
-        Size = length(lists:flatten(RatingGroups)),
-        DrawMargin = calc_draw_margin(DrawProbability, Size),
-        {Vfunc, Wfunc} = case lists:sublist(Ranks, X, X + 1) of
-                             [A, A] ->
-                                 ok;
-                             _ ->
-                                 ok
-                         end,
-        truncate(TeamDiffVar, Vfunc, Wfunc, DrawMargin)
-        end,
-    lists:map(F, ts_utils:enum(TeamDiffVars)).
+%%
+%%build_trunc_layer(TeamDiffVars, RatingGroups, Ranks) ->
+%%    F = fun({X, TeamDiffVar}) ->
+%%        DrawProbability = ?DRAW_PROBABILITY, % TODO: dynamic draw probability
+%%        Size = length(lists:flatten(RatingGroups)),
+%%        DrawMargin = calc_draw_margin(DrawProbability, Size),
+%%        {Vfunc, Wfunc} = case lists:sublist(Ranks, X, X + 1) of
+%%                             [A, A] ->
+%%                                 ok;
+%%                             _ ->
+%%                                 ok
+%%                         end,
+%%        truncate(TeamDiffVar, Vfunc, Wfunc, DrawMargin)
+%%        end,
+%%    lists:map(F, ts_utils:enum(TeamDiffVars)).
 
 
 prior(Var, Val, Dynamiy) ->
