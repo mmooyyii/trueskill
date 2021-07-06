@@ -23,7 +23,7 @@
 }).
 
 new_variable() ->
-    Pi = math:pow(?Sigma, -2)
+    Pi = math:pow(?Sigma, -2),
     #variable{
         value = new_gaussian(0, 0),
         factors = #{}

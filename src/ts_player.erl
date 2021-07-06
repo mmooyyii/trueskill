@@ -75,14 +75,14 @@ adjust(Groups) ->
     adjust(Groups, [[1], [1]], ?Delta).
 
 adjust(Groups, Weights, MinDelta) ->
-    true = ts_utils:all_has_rank(Groups),
-    GroupSize = length(Groups),
-    {SortedRatingGroups, SortedWeights} = lists:unzip(lists:sort(lists:zip(Groups, Weights))),
-    {A, B} = factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights),
-    [RatingLayer | _] = run_schedule(A, B),
-    TeamSize = _team_sizes(SortedRatingGroups),
-    Group = [],
-    TransformedGroups = [],
+%%    true = ts_utils:all_has_rank(Groups),
+%%    GroupSize = length(Groups),
+%%    {SortedRatingGroups, SortedWeights} = lists:unzip(lists:sort(lists:zip(Groups, Weights))),
+%%    {A, B} = factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights),
+%%    [RatingLayer | _] = run_schedule(A, B),
+%%    TeamSize = _team_sizes(SortedRatingGroups),
+%%    Group = [],
+%%    TransformedGroups = [],
     [].
 
 
