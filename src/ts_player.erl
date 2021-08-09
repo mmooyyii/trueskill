@@ -7,6 +7,7 @@
 
 -export([new/2]).
 -export([vs/1]).
+-export([adjust/1]).
 %%-export([rate/1, rate/4]).
 
 %% on Xbox Live，default μ = 25, σ = 25 / 3, k = 3
@@ -70,21 +71,23 @@ p_make_variance_matrix(Players) ->
         end,
     ts_matrix:new([[F(A, B) || A <- lists:seq(1, Length)] || B <- lists:seq(1, Length)]).
 
-
 adjust(Groups) ->
-    adjust(Groups, [[1], [1]], ?Delta).
+    adjust(Groups, lists:seq(1, length(Groups))).
 
-adjust(Groups, Weights, MinDelta) ->
-%%    true = ts_utils:all_has_rank(Groups),
-%%    GroupSize = length(Groups),
-%%    {SortedRatingGroups, SortedWeights} = lists:unzip(lists:sort(lists:zip(Groups, Weights))),
-%%    {A, B} = factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights),
-%%    [RatingLayer | _] = run_schedule(A, B),
-%%    TeamSize = _team_sizes(SortedRatingGroups),
-%%    Group = [],
-%%    TransformedGroups = [],
-    [].
+adjust(Groups, Rank) when length(Groups) == length(Rank) ->
+    adjust(Groups, Rank, ts_utils:memset(Groups, 1), ?Delta).
+
+adjust(Groups, Rank, Weights, MinDelta) ->
+    Sorting = lists:sort(fun({_, R1, _}, {_, R2, _}) -> R1 < R2 end, lists:zip3(Groups, Rank, Weights)),
+    {SortedRatingGroups, SortedRanks, TmpSortedWeights} = lists:unzip3(Sorting),
+    SortedWeights = [[max(MinDelta, I) || I <- Row] || Row <- TmpSortedWeights],
+    {RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer} =
+        ts_layers:factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights),
+    {RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer}.
+
+%%    Layers = run_schedule(RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer, SortedRatingGroups, SortedRanks, SortedWeights),
 
 
+%%ts_player:adjust([[trueskill:new_player(),trueskill:new_player(),trueskill:new_player()],[trueskill:new_player(),trueskill:new_player()]]).
 
 

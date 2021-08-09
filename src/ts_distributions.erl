@@ -2,12 +2,12 @@
 -author("yimo").
 
 %% API
--export([ppf/3, cdf/3, pdf/3]).
+-export([ppf/3, cdf/3, pdf/3, erfcinv/1]).
 
-%%-export([new_variance/0, variance_add/2, variance_sub/2]).
 
 -define(Sqrt2, math:sqrt(2)).
 -compile([{hipe, o3}]).
+
 
 ppf(X, Mu, Sigma) ->
     Mu - Sigma * math:sqrt(2) * erfcinv(2 * X).
@@ -20,10 +20,12 @@ pdf(X, Mu, Sigma) ->
     %% 概率密度函数
     1 / math:sqrt(2 * math:pi()) * abs(Sigma) * math:exp(-(math:pow((X - Mu) / abs(Sigma), 2) / 2)).
 
+
+
 erfcinv(Y) when Y >= 2 -> -100.0;
 erfcinv(Y) when Y =< 0 -> 100.0;
-erfcinv(Y) when Y < 1 -> erfcinv(2 - Y, 1);
-erfcinv(Y) when Y < 1 -> erfcinv(Y, -1).
+erfcinv(Y) when Y >= 1 -> erfcinv(2 - Y, -1);
+erfcinv(Y) when Y < 1 -> erfcinv(Y, 1).
 erfcinv(Y, Symbol) ->
     T = math:sqrt(-2 * math:log(Y / 2.0)),
     X = -0.70711 * ((2.30753 + T * 0.27061) / (1.0 + T * (0.99229 + T * 0.04481)) - T),
@@ -47,6 +49,9 @@ erfc(X) ->
                                 (1.48851587 + T *
                                     (-0.82215223 + T * 0.17087277))))))))),
     case X < 0 of true -> 2.0 - R;false -> R end.
+
+
+
 
 
 

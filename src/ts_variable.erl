@@ -10,7 +10,8 @@
 -author("yimo").
 
 %% API
--export([]).
+-export([new_variable/0]).
+
 -include("ts.hrl").
 
 -record(gaussian, {
