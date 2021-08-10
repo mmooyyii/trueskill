@@ -78,14 +78,27 @@ adjust(Groups, Rank) when length(Groups) == length(Rank) ->
     adjust(Groups, Rank, ts_utils:memset(Groups, 1), ?Delta).
 
 adjust(Groups, Rank, Weights, MinDelta) ->
-    Sorting = lists:sort(fun({_, R1, _}, {_, R2, _}) -> R1 < R2 end, lists:zip3(Groups, Rank, Weights)),
-    {SortedRatingGroups, SortedRanks, TmpSortedWeights} = lists:unzip3(Sorting),
+    Ctx1 = ts_model:new_context(),
+    Sorting = lists:sort(fun({_, {_, R1, _}}, {_, {_, R2, _}}) ->
+        R1 < R2 end, ts_utils:enum(lists:zip3(Groups, Rank, Weights))),
+    {SortedRatingGroups, SortedRanks, TmpSortedWeights} = lists:unzip3([V || {_, V} <- Sorting]),
     SortedWeights = [[max(MinDelta, I) || I <- Row] || Row <- TmpSortedWeights],
-    {RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer} =
-        ts_layers:factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights),
-    {RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer}.
+    {Ctx2, [RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer]} =
+        ts_layers:factor_graph_builders(Ctx1, SortedRatingGroups, SortedRanks, SortedWeights),
+    {RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer},
+    RatingLayer = ts_layers:run_schedule(Ctx2, RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer, MinDelta),
+    TransformedGroups = to_transformed_groups(Ctx2, RatingLayer, Groups),
+    UnSorting = lists:sort(fun({A, _}, {B, _}) -> A < B end, lists:zip([I || {I, _} <- Sorting], TransformedGroups)),
+    [Player || {_, Player} <- UnSorting].
 
-%%    Layers = run_schedule(RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer, SortedRatingGroups, SortedRanks, SortedWeights),
+
+to_transformed_groups(Ctx, RatingLayer, Groups) ->
+    to_transformed_groups(Ctx, RatingLayer, Groups, []).
+to_transformed_groups(_, _, [], Acc) ->
+    lists:reverse(Acc);
+to_transformed_groups(Ctx, RatingLayer, [G | Group], Acc) ->
+    {A, R} = lists:split(length(G), RatingLayer),
+    to_transformed_groups(Ctx, R, Group, [[ts_model:rating_layer_to_player(Ctx, I) || I <- A] | Acc]).
 
 
 %%ts_player:adjust([[trueskill:new_player(),trueskill:new_player(),trueskill:new_player()],[trueskill:new_player(),trueskill:new_player()]]).

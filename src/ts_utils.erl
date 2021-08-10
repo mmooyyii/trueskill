@@ -4,7 +4,7 @@
 
 -include("ts.hrl").
 
--export([enum/1, memset/2, prefix_sum/1]).
+-export([enum/1, memset/2, prefix_sum/1, record_type/1]).
 
 prefix_sum(Ls) ->
     F = fun(X, []) -> [X];(X, Acc) -> [X + hd(Acc) | Acc] end,
@@ -19,3 +19,5 @@ memset(_, N) ->
     N.
 
 
+record_type(Record) ->
+    element(1, Record).
