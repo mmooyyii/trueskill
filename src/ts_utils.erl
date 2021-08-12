@@ -5,6 +5,7 @@
 -include("ts.hrl").
 
 -export([enum/1, memset/2, prefix_sum/1, record_type/1]).
+-export([stack/0]).
 
 prefix_sum(Ls) ->
     F = fun(X, []) -> [X];(X, Acc) -> [X + hd(Acc) | Acc] end,
@@ -21,3 +22,11 @@ memset(_, N) ->
 
 record_type(Record) ->
     element(1, Record).
+
+
+stack() ->
+    try
+        1 / 0
+    catch
+        _:_:S -> io:format("~p~n", [S])
+    end.

@@ -15,43 +15,10 @@
     sigma :: number(),
     pi :: number(),
     tau :: number(),
-    exposure :: number(),
-    rank :: integer()
+    exposure :: number()
 }).
-
-
--record(prior, {
-    vars :: [number()|_],
-    val :: number(),
-    dynamic :: number()
-}).
-
--record(likelihood, {
-    vars :: [number()|_],
-    mean :: number(),
-    value :: number(),
-    variance :: number()
-}).
-
--record(ts_sum, {
-    vars :: [],
-    sum :: number(),
-    terms :: number(),
-    coeffs :: number()
-}).
-
 -record(context, {
     pointer :: integer(),
-    pointer_to_instance :: #{}
-}).
-
-
--record(gaussian, {
-    pi :: number(),
-    tau :: number()
-}).
--record(variable, {
-    gaussian,
-    value,
-    factors
+    pointer_to_instance :: #{},
+    ref :: integer()
 }).

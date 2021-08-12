@@ -2,46 +2,76 @@
 -author("yimo").
 
 %% API
--export([factor_graph_builders/4, run_schedule/7]).
+-export([factor_graph_builders/3, run_schedule/6]).
 -include("ts.hrl").
 
 
 
-factor_graph_builders(Ctx, Groups, Ranks, Weights) ->
+factor_graph_builders(Groups, Ranks, Weights) ->
     GroupSize = length(Groups),
     FlattenGroups = lists:flatten(Groups),
     FlattenWeights = lists:flatten(Weights),
     Size = length(FlattenGroups),
-    RatingVars = lists:duplicate(Size, ts_model:new_variable()),
-    PerfVars = lists:duplicate(Size, ts_model:new_variable()),
-    TeamPerfVars = lists:duplicate(GroupSize, ts_model:new_variable()),
-    TeamDiffVars = lists:duplicate(GroupSize - 1, ts_model:new_variable()),
+    RatingVars = [ts_ctx:put_instance(ts_model:new_variable()) || _ <- lists:seq(1, Size)],
+    PerfVars = [ts_ctx:put_instance(ts_model:new_variable()) || _ <- lists:seq(1, Size)],
+    TeamPerfVars = [ts_ctx:put_instance(ts_model:new_variable()) || _ <- lists:seq(1, GroupSize)],
+    TeamDiffVars = [ts_ctx:put_instance(ts_model:new_variable()) || _ <- lists:seq(1, GroupSize - 1)],
     TeamSize = ts_utils:prefix_sum([length(G) || G <- Groups]),
-    {NewCtx, [RatingVarsIdx, PerfVarsIdx, TeamPerfVarsIdx, TeamDiffVarsIdx]} =
-        p_put_to_ctx(Ctx, [RatingVars, PerfVars, TeamPerfVars, TeamDiffVars]),
     {
-        NewCtx,
-        [
-            build_rating_layer(RatingVarsIdx, FlattenGroups),
-            build_perf_layer(RatingVarsIdx, PerfVarsIdx),
-            build_team_perf_layer(PerfVarsIdx, TeamPerfVarsIdx, TeamSize, FlattenWeights),
-            build_team_diff_layer(TeamPerfVarsIdx, TeamDiffVarsIdx),
-            build_trunc_layer(TeamDiffVarsIdx, Groups, Ranks)
-        ]
+        build_rating_layer(RatingVars, FlattenGroups),
+        build_perf_layer(RatingVars, PerfVars),
+        build_team_perf_layer(PerfVars, TeamPerfVars, TeamSize, FlattenWeights),
+        build_team_diff_layer(TeamPerfVars, TeamDiffVars),
+        build_trunc_layer(TeamDiffVars, Groups, Ranks)
     }.
 
-p_put_to_ctx(Ctx, Vars) ->
-    p_put_to_ctx(Ctx, Vars, []).
-p_put_to_ctx(Ctx, [], Acc) ->
-    {Ctx, lists:reverse(Acc)};
-p_put_to_ctx(Ctx, [Vars | Rest], Acc) ->
-    F = fun(Var, {C, Indexes}) -> {Idx, NC} = ts_model:put_instance(C, Var), {NC, [Idx | Indexes]} end,
-    {NewCtx, Idxes} = lists:foldr(F, {Ctx, []}, Vars),
-    p_put_to_ctx(NewCtx, Rest, [Idxes | Acc]).
+run_schedule(RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer, MinDelta) when MinDelta > 0 ->
 
-run_schedule(Ctx, RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer, MinDelta) when MinDelta > 0 ->
+    lists:foreach(fun(Layer) -> ts_model:down(Layer) end, RatingLayer),
+    lists:foreach(fun(Layer) -> ts_model:down(Layer) end, PerfLayer),
+    lists:foreach(fun(Layer) -> ts_model:down(Layer) end, TermPerfLayer),
+    p_run_team_diff_layer_trunc_layer(TeamDiffLayer, TruncLayer, 10, MinDelta),
+    ts_model:up(hd(TeamDiffLayer), 1),
+    ts_model:up(lists:last(TeamDiffLayer), 2),
+    lists:foreach(fun(F = #{vars := Vars}) ->
+        [ts_model:up(F, X) || X <- lists:seq(1, length(Vars) - 1)] end, TermPerfLayer),
+    lists:foreach(fun(Layer) -> ts_model:up(Layer) end, PerfLayer),
     RatingLayer.
-%%    ts_model:down(hd(RatingLayer)).
+
+p_run_team_diff_layer_trunc_layer(_, _, 0, _) ->
+    ok;
+p_run_team_diff_layer_trunc_layer([TeamDiffLayer], TruncLayer, Loop, MinDelta) ->
+    ts_model:down(TeamDiffLayer),
+    Delta = ts_model:up(hd(TruncLayer)),
+    case Delta =< MinDelta of
+        true ->
+            p_run_team_diff_layer_trunc_layer([TeamDiffLayer], TruncLayer, 0, MinDelta);
+        false ->
+            p_run_team_diff_layer_trunc_layer([TeamDiffLayer], TruncLayer, Loop - 1, MinDelta)
+    end;
+
+p_run_team_diff_layer_trunc_layer(TeamDiffLayer, TruncLayer, Loop, MinDelta) ->
+    Tmp = lists:zip(TeamDiffLayer, TruncLayer),
+    Loop1 = fun({Team, Trunc}, D) ->
+        ts_model:down(Team),
+        MaxD = max(D, ts_model:up(Trunc)),
+        ts_model:up(Trunc, 1),
+        MaxD
+            end,
+    Delta1 = lists:foldl(Loop1, 0, lists:droplast(Tmp)),
+    Loop2 = fun({Team, Trunc}, D) ->
+        ts_model:down(Team),
+        MaxD = max(D, ts_model:up(Trunc)),
+        ts_model:up(Trunc, 0),
+        MaxD
+            end,
+    Delta = lists:foldl(Loop2, Delta1, lists:droplast(lists:reverse(Tmp))),
+    case Delta =< MinDelta of
+        true ->
+            p_run_team_diff_layer_trunc_layer([TeamDiffLayer], TruncLayer, 0, MinDelta);
+        false ->
+            p_run_team_diff_layer_trunc_layer([TeamDiffLayer], TruncLayer, Loop - 1, MinDelta)
+    end.
 
 build_rating_layer(RatingVars, FlattenRatings) ->
     [ts_model:prior(RatingVar, Rating, ?Tau) || {RatingVar, Rating} <- lists:zip(RatingVars, FlattenRatings)].
@@ -52,15 +82,15 @@ build_perf_layer(RatingVars, PerfVars) ->
 build_team_perf_layer(PerfVars, TeamPerfVars, TeamSize, FlattenWeights) ->
     F = fun({Team, PerfVar}) ->
         Start = case Team > 1 of true -> lists:nth(Team - 1, TeamSize);false -> 0 end,
-        End = lists:nth(Team, TeamSize),
-        ChildPerfVars = lists:sublist(PerfVars, Start + 1, End + 1),
-        Coeffs = lists:sublist(FlattenWeights, Start + 1, End + 1),
+        Length = lists:nth(Team, TeamSize),
+        ChildPerfVars = lists:sublist(PerfVars, Start + 1, Length),
+        Coeffs = lists:sublist(FlattenWeights, Start + 1, Length),
         ts_model:ts_sum(PerfVar, ChildPerfVars, Coeffs)
         end,
     lists:map(F, ts_utils:enum(TeamPerfVars)).
 
 build_team_diff_layer(TeamPerfVars, TeamDiffVars) ->
-    [ts_model:ts_sum(TeamDiffVar, lists:sublist(TeamPerfVars, Team, Team + 2), [1, -1]) || {Team, TeamDiffVar}
+    [ts_model:ts_sum(TeamDiffVar, lists:sublist(TeamPerfVars, Team, 2), [1, -1]) || {Team, TeamDiffVar}
         <- ts_utils:enum(TeamDiffVars)].
 
 
@@ -107,10 +137,8 @@ v_win(Diff, DrawMargin) ->
     X = Diff - DrawMargin,
     Demon = ts_distributions:cdf(X, 0, 1),
     case Demon of
-        0.0 ->
-            ts_distributions:pdf(X, 0, 1) / Demon;
-        _ ->
-            -X
+        0.0 -> -X;
+        _ -> ts_distributions:pdf(X, 0, 1) / Demon
     end.
 
 w_win(Diff, DrawMargin) ->
