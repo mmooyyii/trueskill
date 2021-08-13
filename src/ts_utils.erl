@@ -26,7 +26,10 @@ record_type(Record) ->
 
 stack() ->
     try
-        1 / 0
+        throw(error)
     catch
         _:_:S -> io:format("~p~n", [S])
     end.
+
+
+

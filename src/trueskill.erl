@@ -9,8 +9,6 @@
 -export([vs/1]).
 -export([adjust/1, adjust/2]).
 
--export([test/0]).
-
 new_player() ->
     ts_player:new(?Mu, ?Sigma).
 new_player(Mu) ->
@@ -28,6 +26,3 @@ adjust(Groups) ->
 
 adjust(Groups, Rank) when length(Groups) == length(Rank) ->
     ts_player:adjust(Groups, Rank, ts_utils:memset(Groups, 1), ?Delta).
-
-test() ->
-    ts_player:adjust([[trueskill:new_player(), trueskill:new_player(), trueskill:new_player()], [trueskill:new_player(), trueskill:new_player()]]).

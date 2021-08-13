@@ -15,7 +15,7 @@
 
 new(Mu, Sigma) ->
     Pi = math:pow(Sigma, -2),
-    #ts_player{mu = Mu, sigma = Sigma, pi = Pi, tau = Pi * Mu, exposure = 0}.
+    #ts_player{mu = Mu, sigma = Sigma, pi = Pi, tau = Pi * Mu}.
 
 vs(Groups) when length(Groups) >= 2 ->
     Players = lists:flatten(Groups),

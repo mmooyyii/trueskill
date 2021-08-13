@@ -15,8 +15,7 @@
     mu :: number(),
     sigma :: number(),
     pi :: number(),
-    tau :: number(),
-    exposure :: number()
+    tau :: number()
 }).
 -record(context, {
     pointer :: integer(),
