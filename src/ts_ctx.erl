@@ -12,6 +12,7 @@
 -include("ts.hrl").
 %% API
 -export([new_context/0, get_instance/1, put_instance/1, set_instance/2, clear/0, get_serial/0]).
+
 -define(CTX, ts_context).
 
 new_context() ->

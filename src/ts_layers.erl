@@ -26,7 +26,6 @@ factor_graph_builders(Groups, Ranks, Weights) ->
     }.
 
 run_schedule(RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer, MinDelta) when MinDelta > 0 ->
-
     lists:foreach(fun(Layer) -> ts_model:down(Layer) end, RatingLayer),
     lists:foreach(fun(Layer) -> ts_model:down(Layer) end, PerfLayer),
     lists:foreach(fun(Layer) -> ts_model:down(Layer) end, TermPerfLayer),

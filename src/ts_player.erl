@@ -7,15 +7,11 @@
 
 -export([new/2]).
 -export([vs/1]).
--export([adjust/1]).
-%%-export([rate/1, rate/4]).
+-export([adjust/4]).
 
-%% on Xbox Live，default μ = 25, σ = 25 / 3, k = 3
 
-%%-type ts_player() :: ts_player().
-%%-type player() :: ts_player().
-%%-type group() :: [player()].
-%%-type groups() :: [group()].
+
+
 
 new(Mu, Sigma) ->
     Pi = math:pow(Sigma, -2),
@@ -71,11 +67,7 @@ p_make_variance_matrix(Players) ->
         end,
     ts_matrix:new([[F(A, B) || A <- lists:seq(1, Length)] || B <- lists:seq(1, Length)]).
 
-adjust(Groups) ->
-    adjust(Groups, lists:seq(1, length(Groups))).
 
-adjust(Groups, Rank) when length(Groups) == length(Rank) ->
-    adjust(Groups, Rank, ts_utils:memset(Groups, 1), ?Delta).
 
 adjust(Groups, Rank, Weights, MinDelta) ->
     Sorting = lists:sort(fun({_, {_, R1, _}}, {_, {_, R2, _}}) ->
@@ -85,7 +77,7 @@ adjust(Groups, Rank, Weights, MinDelta) ->
     {RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer} =
         ts_layers:factor_graph_builders(SortedRatingGroups, SortedRanks, SortedWeights),
     RatingLayer = ts_layers:run_schedule(RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer, MinDelta),
-    TransformedGroups = to_transformed_groups(RatingLayer, Groups),
+    TransformedGroups = to_transformed_groups(RatingLayer, lists:map(fun({_, {G, _, _}}) -> length(G) end, Sorting)),
     UnSorting = lists:sort(fun({A, _}, {B, _}) -> A < B end, lists:zip([I || {I, _} <- Sorting], TransformedGroups)),
     ts_ctx:clear(),
     [Player || {_, Player} <- UnSorting].
@@ -96,7 +88,7 @@ to_transformed_groups(RatingLayer, Groups) ->
 to_transformed_groups(_, [], Acc) ->
     lists:reverse(Acc);
 to_transformed_groups(RatingLayer, [G | Group], Acc) ->
-    {A, R} = lists:split(length(G), RatingLayer),
+    {A, R} = lists:split(G, RatingLayer),
     to_transformed_groups(R, Group, [[ts_model:rating_layer_to_player(I) || I <- A] | Acc]).
 
 

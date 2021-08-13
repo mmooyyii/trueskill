@@ -16,6 +16,7 @@
 
 -export([rating_layer_to_player/1]).
 -export([up/1, up/2, down/1, delta/2]).
+-export([coffe/2]).
 
 -include("ts.hrl").
 
@@ -56,11 +57,6 @@ update_value(#{type := variable, message := Message, pi := Pi1, tau := Tau1}, Fa
 update_message(#{type := variable, message := Message, pi := Pi1, tau := Tau1}, Factor, Msg = #{pi := Pi2, tau := Tau2}) ->
     #{pi := Pi3, tau := Tau3} = maps:get(Factor, Message),
     #{type => variable, message => Message#{Factor => Msg}, pi => Pi1 - Pi3 + Pi2, tau => Tau1 - Tau3 + Tau2}.
-
-
-
-variable_mul(#{pi := Pi1, tau := Tau1}, #{pi := Pi2, tau := Tau2}) ->
-    new_variable(Pi1 + Pi2, Tau1 + Tau2).
 
 variable_div(#{pi := Pi1, tau := Tau1}, #{pi := Pi2, tau := Tau2}) ->
     new_variable(Pi1 - Pi2, Tau1 - Tau2).
@@ -149,16 +145,10 @@ up(#{type := likelihood, mean := MeanVar, value := ValueVar, variance := Varianc
 up(Self = #{type := ts_sum}) ->
     up(Self, 1).
 
-up(#{type := ts_sum, terms := Terms, coeffs := Coeffs, ref := Ref}, Idx) ->
-    Coeff = lists:nth(Idx, Coeffs),
-    NewCoeffs = lists:foldr(fun({I, C}, Acc) ->
-        case I == Idx of
-            true -> [1 | Acc];
-            false -> [-C / Coeff | Acc]
-        end end, [], ts_utils:enum(Coeffs)),
-    Vals = [ts_ctx:get_instance(T) || T <- Terms],
+up(#{type := ts_sum, terms := Terms, coeffs := Coeffs, sum := SumVar, ref := Ref}, Idx) ->
+    NewCoeffs = coffe(Idx, Coeffs),
+    Vals = [ts_ctx:get_instance(T) || T <- tuple_to_list(setelement(Idx, list_to_tuple(Terms), SumVar))],
     Msgs = [get_factor(Val, Ref) || Val <- Vals],
-    io:format("~p~n", [{Ref, lists:nth(Idx, Terms), Vals, Msgs, NewCoeffs}]),
     ts_sum_update(Ref, lists:nth(Idx, Terms), Vals, Msgs, NewCoeffs).
 
 down(#{type := prior, vars := [Var], player := #ts_player{mu = Mu, sigma = Sigma}, dynamic := Dynamic, ref := Ref}) ->
@@ -187,5 +177,15 @@ ts_sum_update(Ref, Var, Vals, Msgs, Coeffs) ->
             false -> {P + Coeff * Coeff / Pi, M + Coeff * variable_get_mu(V)}
         end end,
     {PiInv, Mu} = lists:foldl(F, {0, 0}, lists:zip3(Vals, Msgs, Coeffs)),
-    ts_ctx:set_instance(Var, update_message(ts_ctx:get_instance(Var), Ref, new_variable(1 / PiInv, 1 / PiInv * Mu))),
-    delta(ts_ctx:get_instance(Var), new_variable(1 / PiInv, 1 / PiInv * Mu)).
+    NV = new_variable(1 / PiInv, 1 / PiInv * Mu),
+    ts_ctx:set_instance(Var, update_message(ts_ctx:get_instance(Var), Ref, NV)),
+    delta(ts_ctx:get_instance(Var), NV).
+
+
+coffe(Idx, Coeffs) ->
+    Coeff = lists:nth(Idx, Coeffs),
+    lists:foldr(fun({I, C}, Acc) ->
+        case I == Idx of
+            true -> [1.0 / Coeff | Acc];
+            false -> [-C / Coeff | Acc]
+        end end, [], ts_utils:enum(Coeffs)).
