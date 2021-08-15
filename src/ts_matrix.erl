@@ -3,16 +3,14 @@
 
 %% API
 -export([new/1, new/3, set/4, transpose/1]).
--export([reshape/3]).
+-export([shape/1, reshape/3]).
 
 -export([at/3, col/2, row/2]).
 -export([add/2, mul/2, dot/2]).
 -export([fold/3, foldt/3, map/2]).
--export([determinant/1, inverse/1, minor/3]).
+-export([determinant/1, inverse/1, adjugate/1, minor/3]).
 
--export([for_loop/1]).
 -export([print/1]).
-
 
 -record(matrix, {
     row :: integer(),
@@ -36,6 +34,8 @@ new([FirstRow | _] = Matrix) ->
 new(List, Row, Col) when Row * Col =:= length(List) ->
     reshape(new([List]), Row, Col).
 
+shape(#matrix{col = C, row = R}) -> {R, C}.
+
 at(Row, Col, #matrix{col = C, m = M}) ->
     element(Row * C + Col + 1, M).
 
@@ -57,7 +57,7 @@ reshape(#matrix{row = R, col = C, m = M}, Row, Col) when R * C =:= Row * Col ->
     #matrix{row = Row, col = Col, m = M}.
 
 transpose(Matrix = #matrix{row = R, col = C}) ->
-    D = lists:reverse(foldt(fun(Ele, Acc) -> [Ele | Acc] end, [], Matrix)),
+    D = lists:reverse(foldt(fun({_, _, Ele}, Acc) -> [Ele | Acc] end, [], Matrix)),
     #matrix{row = C, col = R, m = list_to_tuple(D)}.
 
 determinant(M = #matrix{row = Row, col = Col}) when Row =:= Col ->
@@ -88,19 +88,24 @@ p_adjust_matrix(Matrix, F, C, R) ->
     lists:foldl(fun(X, M) -> set(R, X, F * at(C, X, M) + at(R, X, M), M) end, Matrix, lists:seq(0, C - 1)).
 
 inverse(M = #matrix{row = 1, col = 1}) -> new([[1 / at(0, 0, M)]]);
-inverse(M = #matrix{}) -> mul(1 / determinant(M), adjugate(M)).
+inverse(M = #matrix{}) ->
+    mul(1 / determinant(M), adjugate(M)).
 
+
+%% 伴随矩阵
 adjugate(Matrix = #matrix{col = C, row = R}) when C =:= R ->
-    Loop = fun({Row, Col}, M) -> V = determinant(minor(Row, Col, M)) * p_sign(Row, Col), set(Row, Col, V, M) end,
-    lists:foldl(Loop, Matrix, for_loop([lists:seq(0, R - 1), lists:seq(0, C - 1)])).
+    Loop = fun({Row, Col}, M) -> V = determinant(minor(Row, Col, Matrix)) * p_sign(Row, Col), set(Row, Col, V, M) end,
+    MatrixOfCofactors = lists:foldl(Loop, Matrix, ts_utils:for_loop([lists:seq(0, R - 1), lists:seq(0, C - 1)])),
+    transpose(MatrixOfCofactors).
 
+%% 余子式
 minor(R, C, Matrix = #matrix{row = Row, col = Col}) ->
     Loop = fun
                ({R1, _}, M) when R =:= R1 -> M;
                ({_, C1}, M) when C =:= C1 -> M;
                ({R1, C1}, M) -> [at(R1, C1, Matrix) | M]
            end,
-    M = lists:foldl(Loop, [], for_loop([lists:seq(0, Row - 1), lists:seq(0, Col - 1)])),
+    M = lists:foldr(Loop, [], ts_utils:for_loop([lists:seq(0, Row - 1), lists:seq(0, Col - 1)])),
     new(M, Row - 1, Col - 1).
 
 p_sign(Row, Col) when (Row + Col) rem 2 =:= 1 -> -1;
@@ -132,11 +137,11 @@ foldt(Fun, Acc, Matrix) ->
     p_foldt(Fun, Acc, Matrix, 0, 0).
 
 p_foldt(Fun, Acc, Matrix = #matrix{row = H, col = W}, X, Y) when X =:= H - 1 andalso Y =:= W - 1 ->
-    Fun(at(X, Y, Matrix), Acc);
+    Fun({X, Y, at(X, Y, Matrix)}, Acc);
 p_foldt(Fun, Acc, Matrix = #matrix{row = H}, X, Y) when X =:= H ->
     p_foldt(Fun, Acc, Matrix, 0, Y + 1);
 p_foldt(Fun, Acc, Matrix, X, Y) ->
-    p_foldt(Fun, Fun(at(X, Y, Matrix), Acc), Matrix, X + 1, Y).
+    p_foldt(Fun, Fun({X, Y, at(X, Y, Matrix)}, Acc), Matrix, X + 1, Y).
 
 
 print(#matrix{row = R, col = C, m = M}) ->
@@ -146,24 +151,4 @@ print(#matrix{row = R, col = C, m = M}) ->
     io:format("[~n" ++ Format ++ "]~n", Data).
 
 
-for_loop([]) -> [];
-for_loop(Ls) ->
-    Lists = lists:reverse(Ls),
-    Tuples = lists:map(fun list_to_tuple/1, Lists),
-    Indexes = [1 || _ <- Lists],
-    p_for_loop(Tuples, Indexes, []).
 
-p_for_loop(_, stop, Ret) -> lists:reverse(Ret);
-p_for_loop(Tuples, Indexes, Ret) ->
-    R = lists:map(fun({Tuple, Index}) -> element(Index, Tuple) end, lists:zip(Tuples, Indexes)),
-    NewRet = [list_to_tuple(lists:reverse(R)) | Ret],
-    p_for_loop(Tuples, next_index(Tuples, Indexes), NewRet).
-
-next_index(Tuples, Index) -> p_next_index([size(Tuple) || Tuple <- Tuples], Index, 1, []).
-
-p_next_index(_, [], 1, _) -> stop;
-p_next_index(_, [], 0, Return) -> lists:reverse(Return);
-p_next_index([MaxN | RestTuples], [N | RestIndexes], Carry, Return) when MaxN < N + Carry ->
-    p_next_index(RestTuples, RestIndexes, 1, [1 | Return]);
-p_next_index([_ | RestTuples], [N | RestIndexes], Carry, Return) ->
-    p_next_index(RestTuples, RestIndexes, 0, [N + Carry | Return]).
