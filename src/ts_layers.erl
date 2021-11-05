@@ -54,22 +54,22 @@ p_run_team_diff_layer_trunc_layer(TeamDiffLayer, TruncLayer, Loop, MinDelta) ->
     Loop1 = fun({Team, Trunc}, D) ->
         ts_model:down(Team),
         MaxD = max(D, ts_model:up(Trunc)),
-        ts_model:up(Trunc, 1),
+        ts_model:up(Team, 2),
         MaxD
             end,
     Delta1 = lists:foldl(Loop1, 0, lists:droplast(Tmp)),
     Loop2 = fun({Team, Trunc}, D) ->
         ts_model:down(Team),
         MaxD = max(D, ts_model:up(Trunc)),
-        ts_model:up(Trunc, 0),
+        ts_model:up(Team, 1),
         MaxD
             end,
     Delta = lists:foldl(Loop2, Delta1, lists:droplast(lists:reverse(Tmp))),
     case Delta =< MinDelta of
         true ->
-            p_run_team_diff_layer_trunc_layer([TeamDiffLayer], TruncLayer, 0, MinDelta);
+            p_run_team_diff_layer_trunc_layer(TeamDiffLayer, TruncLayer, 0, MinDelta);
         false ->
-            p_run_team_diff_layer_trunc_layer([TeamDiffLayer], TruncLayer, Loop - 1, MinDelta)
+            p_run_team_diff_layer_trunc_layer(TeamDiffLayer, TruncLayer, Loop - 1, MinDelta)
     end.
 
 build_rating_layer(RatingVars, FlattenRatings) ->

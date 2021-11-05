@@ -10,9 +10,6 @@
 -export([adjust/4]).
 
 
-
-
-
 new(Mu, Sigma) ->
     Pi = math:pow(Sigma, -2),
     #ts_player{mu = Mu, sigma = Sigma, pi = Pi, tau = Pi * Mu}.

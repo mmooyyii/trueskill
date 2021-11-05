@@ -18,9 +18,6 @@
     m :: tuple()
 }).
 
-new([]) ->
-    #matrix{row = 0, col = 0, m = {}};
-
 new([FirstRow | _] = Matrix) ->
     Width = length(FirstRow),
     case lists:all(fun(Row) -> length(Row) =:= Width end, Matrix) of

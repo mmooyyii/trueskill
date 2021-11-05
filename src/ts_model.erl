@@ -140,10 +140,7 @@ up(#{type := likelihood, mean := MeanVar, value := ValueVar, variance := Varianc
     #{pi := Pi, tau := Tau} = variable_div(Value, get_factor(Value, Ref)),
     A = 1.0 / (1.0 + Variance * Pi),
     ts_ctx:set_instance(MeanVar, update_message(ts_ctx:get_instance(MeanVar), Ref, new_variable(A * Pi, A * Tau))),
-    delta(ts_ctx:get_instance(MeanVar), new_variable(A * Pi, A * Tau));
-
-up(Self = #{type := ts_sum}) ->
-    up(Self, 1).
+    delta(ts_ctx:get_instance(MeanVar), new_variable(A * Pi, A * Tau)).
 
 up(#{type := ts_sum, terms := Terms, coeffs := Coeffs, sum := SumVar, ref := Ref}, Idx) ->
     NewCoeffs = coffe(Idx, Coeffs),

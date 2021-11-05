@@ -4,9 +4,8 @@
 
 -include("ts.hrl").
 
--export([enum/1, memset/2, prefix_sum/1, record_type/1]).
+-export([enum/1, memset/2, prefix_sum/1]).
 -export([for_loop/1]).
--export([stack/0]).
 
 prefix_sum(Ls) ->
     F = fun(X, []) -> [X];(X, Acc) -> [X + hd(Acc) | Acc] end,
@@ -20,12 +19,6 @@ memset(Ls, N) when is_list(Ls) ->
 memset(_, N) ->
     N.
 
-
-record_type(Record) ->
-    element(1, Record).
-
-
-for_loop([]) -> [];
 for_loop(Ls) ->
     Lists = lists:reverse(Ls),
     Tuples = lists:map(fun list_to_tuple/1, Lists),
@@ -46,13 +39,3 @@ p_next_index([MaxN | RestTuples], [N | RestIndexes], Carry, Return) when MaxN < 
     p_next_index(RestTuples, RestIndexes, 1, [1 | Return]);
 p_next_index([_ | RestTuples], [N | RestIndexes], Carry, Return) ->
     p_next_index(RestTuples, RestIndexes, 0, [N + Carry | Return]).
-
-stack() ->
-    try
-        throw(error)
-    catch
-        _:_:S -> io:format("~p~n", [S])
-    end.
-
-
-

@@ -12,7 +12,7 @@ vs_test() ->
 
 
 adjust1_test() ->
-    [[T1], [T2]] = trueskill:adjust([[trueskill:new_player()], [trueskill:new_player()]]),
+    [[T1], [T2]] = trueskill:adjust([[trueskill:new_player()], [trueskill:new_player()]], [1, 2]),
     assert_player_equal(T1, #ts_player{mu = 29.3958, sigma = 7.1715, pi = 0.0194, tau = 0.5717}),
     assert_player_equal(T2, #ts_player{mu = 20.6042, sigma = 7.1715, pi = 0.0194, tau = 0.4006}).
 
@@ -22,4 +22,17 @@ adjust2_test() ->
     assert_player_equal(P2, #ts_player{mu = 21.4498, sigma = 7.8677, pi = 0.0162, tau = 0.3465}),
     assert_player_equal(P3, #ts_player{mu = 13.5501, sigma = 7.8677, pi = 0.0162, tau = 0.2189}).
 
+adjust3_test() ->
+    trueskill:adjust(
+        [
+            [trueskill:new_player()],
+            [trueskill:new_player()],
+            [trueskill:new_player()]
+        ]).
 
+adjust4_test() ->
+    trueskill:adjust(
+        [
+            [trueskill:new_player()],
+            [trueskill:new_player()]
+        ], [1, 2]).
