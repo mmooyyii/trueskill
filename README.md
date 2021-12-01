@@ -1,3 +1,4 @@
+![Erlang CI](https://github.com/mmooyyii/trueskill/workflows/Erlang%20CI/badge.svg?branch=master)  
 # trueskill
 
 Erlang implementation of TrueSkill
