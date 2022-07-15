@@ -1,4 +1,4 @@
-![Erlang CI](https://github.com/mmooyyii/trueskill/workflows/Erlang%20CI/badge.svg?branch=master)  
+![Erlang CI](https://github.com/mmooyyii/trueskill/workflows/Erlang%20CI/badge.svg?branch=master)  [![Coverage Status](https://coveralls.io/repos/github/mmooyyii/trueskill/badge.svg?branch=master)](https://coveralls.io/github/mmooyyii/trueskill?branch=master)
 # trueskill
 
 Erlang implementation of TrueSkill
