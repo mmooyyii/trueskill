@@ -17,13 +17,14 @@
 -type player() :: #ts_player{}.
 -type team() :: [player()].
 
-%% Xbox Live 的默认参数
+%% Herbrich 2007 实验里用的参数
 -define(MU, 25.0).
 -define(SIGMA, (?MU / 3)).
 -define(BETA, (?SIGMA / 2)).
 -define(TAU, (?SIGMA / 100)).
 -define(DRAW_PROBABILITY, 0.10).
--define(MIN_DELTA, 0.0001).
+%% EP 收敛条件
+-define(MIN_DELTA, 1.0e-6).
 -define(MAX_ITERATIONS, 100).
 
 -spec new_player() -> player().
@@ -74,8 +75,7 @@ adjust(Teams, Ranks, Weights)
     Mu = [P#ts_player.mu || P <- Players] ++ lists:duplicate(N, 0.0),
     Sigma = ts_linalg:diag([P#ts_player.sigma * P#ts_player.sigma + ?TAU * ?TAU || P <- Players]
         ++ lists:duplicate(N, ?BETA * ?BETA)),
-    Ws = [[max(?MIN_DELTA, W) || W <- Ws] || Ws <- Weights],
-    Factors = [rank_factor(Teams, Ws, Ranks, T1, T2) || {T1, T2} <- adjacent(sort_by_rank(Ranks))],
+    Factors = [rank_factor(Teams, Weights, Ranks, T1, T2) || {T1, T2} <- adjacent(sort_by_rank(Ranks))],
     {Mu1, Sigma1} = ts_ep:run(Mu, Sigma, Factors, ?MIN_DELTA, ?MAX_ITERATIONS),
     Skills = lists:zipwith(fun(M, V) -> #ts_player{mu = M, sigma = math:sqrt(V)} end,
         lists:sublist(Mu1, N), lists:sublist(ts_linalg:diagonal(Sigma1), N)),

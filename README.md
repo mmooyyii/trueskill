@@ -12,7 +12,7 @@ support 1:1,N:M, N:M:J:K game.
 - [TrueSkill 2: An improved Bayesian skill rating system](https://www.microsoft.com/en-us/research/publication/trueskill-2-improved-bayesian-skill-rating-system/) (Minka, Cleven, Zaykov 2018)
 
 Both are implemented as Expectation Propagation over a multivariate Gaussian (`ts_ep`).
-The classic results match [python trueskill](https://github.com/sublee/trueskill).
+For two teams the result equals the closed-form update in the TrueSkill paper.
 
 ### Build
 
