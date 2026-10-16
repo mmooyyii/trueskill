@@ -1,0 +1,1 @@
+-define(assertNear(Expect, Actual, Tol), ?assert(abs((Expect) - (Actual)) < (Tol))).
