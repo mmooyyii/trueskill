@@ -62,10 +62,10 @@ variable_div(#{pi := Pi1, tau := Tau1}, #{pi := Pi2, tau := Tau2}) ->
     new_variable(Pi1 - Pi2, Tau1 - Tau2).
 
 variable_get_mu(#{type := variable, pi := Pi, tau := Tau}) ->
-    case abs(Pi) < 0.0001 of true -> 0;false -> Tau / Pi end.
+    case Pi == 0 of true -> 0;false -> Tau / Pi end.
 
 variable_get_sigma(#{type := variable, pi := Pi}) ->
-    case abs(Pi) < 0.0001 of true -> ?Inf;false -> math:pow(1 / Pi, 0.5) end.
+    case Pi == 0 of true -> ?Inf;false -> math:pow(1 / Pi, 0.5) end.
 
 
 prior(Var, Player, Dynamic) ->
@@ -139,8 +139,10 @@ up(#{type := likelihood, mean := MeanVar, value := ValueVar, variance := Varianc
     Value = ts_ctx:get_instance(ValueVar),
     #{pi := Pi, tau := Tau} = variable_div(Value, get_factor(Value, Ref)),
     A = 1.0 / (1.0 + Variance * Pi),
-    ts_ctx:set_instance(MeanVar, update_message(ts_ctx:get_instance(MeanVar), Ref, new_variable(A * Pi, A * Tau))),
-    delta(ts_ctx:get_instance(MeanVar), new_variable(A * Pi, A * Tau)).
+    Old = ts_ctx:get_instance(MeanVar),
+    New = update_message(Old, Ref, new_variable(A * Pi, A * Tau)),
+    ts_ctx:set_instance(MeanVar, New),
+    delta(Old, New).
 
 up(#{type := ts_sum, terms := Terms, coeffs := Coeffs, sum := SumVar, ref := Ref}, Idx) ->
     NewCoeffs = coffe(Idx, Coeffs),
@@ -158,7 +160,7 @@ down(#{type := likelihood, mean := MeanVar, value := ValueVar, variance := Varia
     MeanInstance = #{pi := Pi1, tau := Tau1} = ts_ctx:get_instance(MeanVar),
     #{pi := Pi2, tau := Tau2} = get_factor(MeanInstance, Ref),
     A = 1.0 / (1.0 + Variance * (Pi1 - Pi2)),
-    Value = new_variable(A * (Pi1 - Pi2), A * Tau1 - Tau2),
+    Value = new_variable(A * (Pi1 - Pi2), A * (Tau1 - Tau2)),
     ts_ctx:set_instance(ValueVar, update_message(ts_ctx:get_instance(ValueVar), Ref, Value));
 
 down(#{type := ts_sum, terms := Terms, sum := Sum, coeffs := Coeffs, ref := Ref}) ->
@@ -169,14 +171,17 @@ down(#{type := ts_sum, terms := Terms, sum := Sum, coeffs := Coeffs, ref := Ref}
 ts_sum_update(Ref, Var, Vals, Msgs, Coeffs) ->
     F = fun({Val, Msg, Coeff}, {P, M}) ->
         V = #{pi := Pi} = variable_div(Val, Msg),
-        case abs(Pi) < 0.0000001 of
-            true -> {?Inf, M + Coeff * variable_get_mu(V)};
-            false -> {P + Coeff * Coeff / Pi, M + Coeff * variable_get_mu(V)}
+        NewM = M + Coeff * variable_get_mu(V),
+        case P == ?Inf orelse Pi == 0 of
+            true -> {?Inf, NewM};
+            false -> {P + Coeff * Coeff / Pi, NewM}
         end end,
     {PiInv, Mu} = lists:foldl(F, {0, 0}, lists:zip3(Vals, Msgs, Coeffs)),
     NV = new_variable(1 / PiInv, 1 / PiInv * Mu),
-    ts_ctx:set_instance(Var, update_message(ts_ctx:get_instance(Var), Ref, NV)),
-    delta(ts_ctx:get_instance(Var), NV).
+    Old = ts_ctx:get_instance(Var),
+    New = update_message(Old, Ref, NV),
+    ts_ctx:set_instance(Var, New),
+    delta(Old, New).
 
 
 coffe(Idx, Coeffs) ->

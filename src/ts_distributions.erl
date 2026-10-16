@@ -18,7 +18,7 @@ cdf(X, Mu, Sigma) ->
 
 pdf(X, Mu, Sigma) ->
     %% 概率密度函数
-    1 / math:sqrt(2 * math:pi()) * abs(Sigma) * math:exp(-(math:pow((X - Mu) / abs(Sigma), 2) / 2)).
+    1 / (math:sqrt(2 * math:pi()) * abs(Sigma)) * math:exp(-(math:pow((X - Mu) / abs(Sigma), 2) / 2)).
 
 
 

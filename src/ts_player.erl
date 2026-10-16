@@ -67,8 +67,15 @@ p_make_variance_matrix(Players) ->
 
 
 adjust(Groups, Rank, Weights, MinDelta) ->
+    try
+        p_adjust(Groups, Rank, Weights, MinDelta)
+    after
+        ts_ctx:clear()
+    end.
+
+p_adjust(Groups, Rank, Weights, MinDelta) ->
     Sorting = lists:sort(fun({_, {_, R1, _}}, {_, {_, R2, _}}) ->
-        R1 < R2 end, ts_utils:enum(lists:zip3(Groups, Rank, Weights))),
+        R1 =< R2 end, ts_utils:enum(lists:zip3(Groups, Rank, Weights))),
     {SortedRatingGroups, SortedRanks, TmpSortedWeights} = lists:unzip3([V || {_, V} <- Sorting]),
     SortedWeights = [[max(MinDelta, I) || I <- Row] || Row <- TmpSortedWeights],
     {RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer} =
@@ -76,7 +83,6 @@ adjust(Groups, Rank, Weights, MinDelta) ->
     RatingLayer = ts_layers:run_schedule(RatingLayer, PerfLayer, TermPerfLayer, TeamDiffLayer, TruncLayer, MinDelta),
     TransformedGroups = to_transformed_groups(RatingLayer, lists:map(fun({_, {G, _, _}}) -> length(G) end, Sorting)),
     UnSorting = lists:sort(fun({A, _}, {B, _}) -> A < B end, lists:zip([I || {I, _} <- Sorting], TransformedGroups)),
-    ts_ctx:clear(),
     [Player || {_, Player} <- UnSorting].
 
 

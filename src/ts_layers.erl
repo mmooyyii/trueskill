@@ -81,7 +81,7 @@ build_perf_layer(RatingVars, PerfVars) ->
 build_team_perf_layer(PerfVars, TeamPerfVars, TeamSize, FlattenWeights) ->
     F = fun({Team, PerfVar}) ->
         Start = case Team > 1 of true -> lists:nth(Team - 1, TeamSize);false -> 0 end,
-        Length = lists:nth(Team, TeamSize),
+        Length = lists:nth(Team, TeamSize) - Start,
         ChildPerfVars = lists:sublist(PerfVars, Start + 1, Length),
         Coeffs = lists:sublist(FlattenWeights, Start + 1, Length),
         ts_model:ts_sum(PerfVar, ChildPerfVars, Coeffs)
@@ -96,9 +96,9 @@ build_team_diff_layer(TeamPerfVars, TeamDiffVars) ->
 build_trunc_layer(TeamDiffVars, RatingGroups, Ranks) ->
     F = fun({X, TeamDiffVar}) ->
         DrawProbability = ?DRAW_PROBABILITY,
-        Size = length(lists:flatten(lists:sublist(RatingGroups, X, X + 1))),
+        Size = length(lists:flatten(lists:sublist(RatingGroups, X, 2))),
         DrawMargin = calc_draw_margin(DrawProbability, Size),
-        {Vfunc, Wfunc} = case lists:sublist(Ranks, X, X + 1) of
+        {Vfunc, Wfunc} = case lists:sublist(Ranks, X, 2) of
                              [Same, Same] ->
                                  {fun v_draw/2, fun w_draw/2};
                              _ ->
@@ -118,9 +118,9 @@ v_draw(Diff, DrawMargin) ->
     Denom = ts_distributions:cdf(A, 0, 1) - ts_distributions:cdf(B, 0, 1),
     Numer = ts_distributions:pdf(B, 0, 1) - ts_distributions:pdf(A, 0, 1),
     Symbol = case Diff < 0 of true -> -1;false -> 1 end,
-    case Denom of
-        0.0 -> A * Symbol;
-        _ -> (Numer / Denom) * Symbol
+    case Denom == 0 of
+        true -> A * Symbol;
+        false -> (Numer / Denom) * Symbol
     end.
 
 w_draw(Diff, DrawMargin) ->
@@ -128,21 +128,23 @@ w_draw(Diff, DrawMargin) ->
     A = DrawMargin - AbsDiff,
     B = -DrawMargin - AbsDiff,
     Denom = ts_distributions:cdf(A, 0, 1) - ts_distributions:cdf(B, 0, 1),
-    true = (Denom =/= 0.0),
+    Denom == 0 andalso erlang:error(floating_point_error),
     V = v_draw(AbsDiff, DrawMargin),
-    (V * V) + (A + ts_distributions:pdf(A, 0, 1) - B * ts_distributions:pdf(B, 0, 1)) / Denom.
+    (V * V) + (A * ts_distributions:pdf(A, 0, 1) - B * ts_distributions:pdf(B, 0, 1)) / Denom.
 
 v_win(Diff, DrawMargin) ->
     X = Diff - DrawMargin,
     Demon = ts_distributions:cdf(X, 0, 1),
-    case Demon of
-        0.0 -> -X;
-        _ -> ts_distributions:pdf(X, 0, 1) / Demon
+    case Demon == 0 of
+        true -> -X;
+        false -> ts_distributions:pdf(X, 0, 1) / Demon
     end.
 
 w_win(Diff, DrawMargin) ->
     X = Diff - DrawMargin,
     V = v_win(Diff, DrawMargin),
     W = V * (V + X),
-    true = (0 < W andalso W < 1),
-    W.
+    case 0 < W andalso W < 1 of
+        true -> W;
+        false -> erlang:error(floating_point_error)
+    end.

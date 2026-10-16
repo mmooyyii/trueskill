@@ -67,11 +67,12 @@ determinant(M = #matrix{row = Row, col = Col}) when Row =:= Col ->
 
 p_determinant(_, {Rv, M, true}) -> {Rv, M, true};
 p_determinant(C, {Rv, Mat, false}) ->
-    {Pivot, R} = lists:max([{abs(at(R, C, Mat)), R} || R <- lists:seq(0, C)]),
+    {_, R} = lists:max([{abs(at(R, C, Mat)), R} || R <- lists:seq(0, C)]),
+    Pivot = at(R, C, Mat),
     CR = row(C, Mat),
     RR = row(R, Mat),
     Matrix = set_row(R, CR, set_row(C, RR, Mat)),
-    case {Pivot =:= 0, R =:= C} of
+    case {Pivot == 0, R =:= C} of
         {true, _} -> {0.0, Matrix, true};
         {_, true} -> {Rv * Pivot, adjust_matrix(Matrix, -1.0 / Pivot, C), false};
         {_, false} -> {-Rv * Pivot, adjust_matrix(Matrix, -1.0 / Pivot, C), false}
